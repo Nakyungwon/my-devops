@@ -17,7 +17,7 @@ spec:
       containers:
         - name: web
           # 아래 한 줄을 CI가 GHCR 태그로 교체합니다 (파일 내 유일해야 sed가 안전).
-          image: ghcr.io/nakyungwon/my-devops:5ad1846367ef81dc5dea0dedd2c7f767c7cfca46
+          image: ghcr.io/nakyungwon/my-devops:f725fd81d431a93dd8c716bf03c33d457e98abd4
           ports:
             - containerPort: 80
           resources:
