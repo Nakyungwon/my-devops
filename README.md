@@ -44,8 +44,10 @@ kubectl patch app web-dev -n argocd --type merge \
   -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
 
 # prod 배포 (automated 가 없어서 직접 눌러야 합니다)
+# syncOptions 를 operation 에 같이 안 넣으면 namespaces "prod" not found 로 실패합니다.
+# syncPolicy.syncOptions 는 자동 sync 에만 적용됩니다.
 kubectl patch app web-prod -n argocd --type merge \
-  -p '{"operation":{"sync":{"revision":"v1.0.0"}}}'
+  -p '{"operation":{"sync":{"revision":"v1.0.0","syncOptions":["CreateNamespace=true"]}}}'
 
 # 상태 확인
 kubectl get app -n argocd
