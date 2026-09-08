@@ -1,0 +1,8 @@
+apiVersion: v2
+name: web
+description: my-devops GitOps 데모 앱
+type: application
+# 차트 자체의 버전 (템플릿을 고치면 올린다)
+version: 0.1.0
+# 담고 있는 앱의 버전 (표시용)
+appVersion: "2.0"

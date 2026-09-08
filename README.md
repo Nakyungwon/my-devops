@@ -8,7 +8,7 @@
 app/index.html 수정
   → git push
   → GitHub Actions: 이미지 빌드 → GHCR push
-  → Actions가 manifests/deployment.yaml 태그 커밋
+  → Actions가 chart/values.yaml 의 image.tag 커밋
   → ArgoCD가 폴링으로 감지 (최대 3분)
   → 클러스터 sync
   → http://localhost:30080
@@ -18,9 +18,9 @@ app/index.html 수정
 
 ## 접속
 
-| 대상 | 주소 |
-|---|---|
-| 앱 | http://localhost:30080 |
+| 대상      | 주소                                            |
+| --------- | ----------------------------------------------- |
+| 앱        | http://localhost:30080                          |
 | ArgoCD UI | https://localhost:8080 (아래 port-forward 필요) |
 
 ```bash
@@ -51,16 +51,19 @@ kubectl config current-context   # docker-desktop 이어야 함
 
 ```
 app/          정적 페이지 + Dockerfile  (여기를 고치면 루프 발동)
-manifests/    ArgoCD가 감시하는 대상. CI가 image 태그를 자동 갱신
-argocd/       Application CR. manifests/ 를 가리킴 (일부러 분리 — 아래 참고)
+chart/        Helm 차트. ArgoCD가 감시하는 대상. CI가 values.yaml 의 image.tag 를 자동 갱신
+argocd/       Application CR. chart/ 를 가리킴 (일부러 분리 — 아래 참고)
 ```
 
-`argocd/application.yaml` 이 `manifests/` 밖에 있는 이유: 안에 두면 ArgoCD가
-자기 자신을 `default` 네임스페이스에 만들려고 시도해서 깨집니다.
+`argocd/application.yaml` 이 `chart/` 밖에 있는 이유: 안에 두면 helm 이 이 파일까지
+렌더링해서 ArgoCD가 자기 자신을 `default` 네임스페이스에 만들려다 깨집니다.
+
+helm 릴리스 이름은 Application 의 `metadata.name`(`web`)이 됩니다. 템플릿의
+`{{ .Release.Name }}` 이 그 값이라 리소스 이름은 예전 `manifests/` 시절과 같습니다.
 
 ## 알아둘 것
 
-- **CI 무한루프 방지**: 워크플로가 `manifests/` 를 커밋하는데, 트리거가 `paths: app/**`
+- **CI 무한루프 방지**: 워크플로가 `chart/` 를 커밋하는데, 트리거가 `paths: app/**`
   로 제한돼 있어 그 커밋이 자신을 다시 부르지 않습니다. 이 필터를 지우면 무한루프입니다.
 - **GHCR 소문자**: `github.repository` 는 `Nakyungwon/...` 이라 대문자가 섞입니다.
   GHCR은 소문자만 받으므로 워크플로에서 `IMAGE` 를 소문자로 하드코딩했습니다.
@@ -76,7 +79,10 @@ argocd/       Application CR. manifests/ 를 가리킴 (일부러 분리 — 아
 
 ```bash
 kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.9.3/manifests/install.yaml
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.9.3/manifests/install.yaml # apt install argocd
 kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
+# kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
+        # └──┬─┘ └─────────┬────────┘ └┬─┘ └─┬─┘ └───┬──┘ └─────┬────┘
+        #  기다려     이 조건이 참될때까지   뭘    전부     어디서     최대 5분
 kubectl apply -f argocd/application.yaml
 ```

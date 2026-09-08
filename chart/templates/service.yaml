@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  # deployment.yaml 과 동일하게 helm 릴리스 이름에서 옵니다.
+  name: {{ .Release.Name }}
+spec:
+  type: NodePort
+  selector:
+    # deployment 의 template.metadata.labels.app 과 같아야 파드를 잡습니다.
+    app: {{ .Release.Name }}
+  ports:
+    # port/targetPort 는 values 아님 — 컨테이너(nginx)가 80 이라 하드코딩
+    - port: 80
+      targetPort: 80
+      # chart/values.yaml → service.nodePort
+      # 고정 포트 — http://localhost:30080 으로 항상 접근 가능
+      nodePort: {{ .Values.service.nodePort }}

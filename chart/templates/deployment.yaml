@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # .Release.Name = helm 릴리스 이름. values.yaml 이 아니라 설치 명령에서 옵니다.
+  #   helm upgrade --install web ./chart  → "web"
+  #   ArgoCD(helm source)면 Application 의 metadata.name 이 릴리스 이름이 됩니다.
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  # chart/values.yaml → replicaCount (설치 시 --set replicaCount=3 으로 덮어쓰기 가능)
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      # 아래 template.metadata.labels 와 service.yaml 의 selector 가 이 값과 같아야 붙습니다.
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: web
+          # repo: chart/values.yaml → image.repo (CI 의 env.IMAGE 와 같은 값을 손으로 맞춰둔 것)
+          # tag : chart/values.yaml → image.tag  (CI 가 커밋 SHA 로 갱신하는 자리)
+          image: "{{ .Values.image.repo }}:{{ .Values.image.tag }}"
+          ports:
+            # values 아님 — nginx:alpine 이미지가 80 으로 listen 하므로 하드코딩 (app/Dockerfile)
+            - containerPort: 80
+          # chart/values.yaml → resources 블록을 통째로 YAML 로 펼칩니다.
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /
+              # 위 containerPort 와 같은 값. 바꾸려면 둘 다 바꿔야 합니다.
+              port: 80

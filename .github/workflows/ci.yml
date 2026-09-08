@@ -1,7 +1,7 @@
 name: build-and-deploy
 
 # app/ 변경만 트리거합니다.
-# 아래 bump 스텝이 manifests/ 를 커밋하는데, 그게 다시 이 워크플로를 부르면
+# 아래 bump 스텝이 chart/ 를 커밋하는데, 그게 다시 이 워크플로를 부르면
 # 무한 루프가 됩니다. 이 paths 필터가 그 루프를 끊습니다.
 on:
   push:
@@ -12,12 +12,12 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # manifests/ 태그 커밋용
+  contents: write # chart/values.yaml 태그 커밋용
   packages: write # GHCR push용
 
 env:
   # GHCR은 소문자만 받습니다. github.repository 는 대문자(Nakyungwon)가 섞여 있어 그대로 쓰면 실패합니다.
-  IMAGE: ghcr.io/nakyungwon/my-devops
+  IMAGE: ghcr.io/nakyungwon/my-devops # git 에서 제공하는 이미지 저장소
 
 jobs:
   build:
@@ -39,18 +39,19 @@ jobs:
             ${{ env.IMAGE }}:${{ github.sha }}
             ${{ env.IMAGE }}:latest
 
-      - name: bump image tag in manifests
+      - name: bump image tag in chart values
         run: |
           set -euo pipefail
-          sed -i "s|^\( *image: \).*|\1${IMAGE}:${GITHUB_SHA}|" manifests/deployment.yaml
-          grep -n "image:" manifests/deployment.yaml
+          # values.yaml 안에 tag: 는 한 줄뿐이라 sed 가 안전합니다.
+          sed -i "s|^\( *tag: \).*|\1${GITHUB_SHA}|" chart/values.yaml
+          grep -n "tag:" chart/values.yaml
 
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add manifests/deployment.yaml
+          git add chart/values.yaml
           # 태그가 그대로면 커밋할 게 없어 실패하므로 먼저 확인
           if git diff --cached --quiet; then
-            echo "no manifest change, skipping commit"
+            echo "no tag change, skipping commit"
           else
             git commit -m "chore: deploy ${GITHUB_SHA:0:7}"
             git push
