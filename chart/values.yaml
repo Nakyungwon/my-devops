@@ -10,7 +10,7 @@ image:
   repo: ghcr.io/nakyungwon/my-devops
   # → templates/deployment.yaml: image 뒷부분. 값은 CI 가 빌드한 커밋 SHA.
   #    CI(bump 스텝)가 이 줄을 sed 로 갈아끼웁니다. 손으로 고칠 일 없습니다.
-  tag: 222576a904dbdc3f5126ac1e829ff30abdd99c9a
+  tag: a1dd282a9af80c97a63ea0158668f3517441f6b6
 
 service:
   # → templates/service.yaml: ports[0].nodePort (README 의 localhost:30080)
