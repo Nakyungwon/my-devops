@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: web-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Nakyungwon/my-devops.git
+    # prod 는 태그를 배포합니다. main 이 움직여도 여기는 안 움직입니다.
+    # 승격 = 이 줄을 새 태그로 바꾸고 kubectl apply.
+    targetRevision: v1.0.0
+    path: chart
+    helm:
+      releaseName: web
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod
+  syncPolicy:
+    # automated 없음 — 있으면 dev 와 똑같아져서 나눈 의미가 없습니다.
+    # 배포는 ArgoCD UI 의 SYNC 버튼이나 아래 명령으로:
+    #   kubectl patch app web-prod -n argocd --type merge \
+    #     -p '{"operation":{"sync":{"revision":"v1.0.0"}}}'
+    syncOptions:
+      - CreateNamespace=true

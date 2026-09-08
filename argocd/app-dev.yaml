@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: web-dev
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Nakyungwon/my-devops.git
+    # dev 는 main 최신을 그대로 따라갑니다.
+    targetRevision: main
+    # 이 파일들이 chart/ 안에 있으면 helm 이 같이 렌더링해서
+    # ArgoCD 가 자기 자신을 만들려다 깨집니다. 그래서 디렉터리를 분리했습니다.
+    path: chart
+    helm:
+      # 이걸 안 주면 릴리스 이름이 metadata.name(web-dev) 이 되어
+      # 리소스가 web-dev 로 생깁니다. 이름은 web 으로 두고 네임스페이스로 구분합니다.
+      releaseName: web
+      # 경로는 path(chart/) 기준 상대경로입니다.
+      # valueFiles 를 쓰는 순간 values.yaml 기본 포함이 꺼지므로 명시해야 합니다.
+      valueFiles:
+        - values.yaml
+        - values-dev.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true # git에서 지운 리소스는 클러스터에서도 삭제
+      selfHeal: true # kubectl로 직접 바꿔도 git 상태로 되돌림
+    syncOptions:
+      - CreateNamespace=true

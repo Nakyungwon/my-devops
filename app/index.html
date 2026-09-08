@@ -14,19 +14,21 @@
           font-family: ui-monospace, monospace; }
   td { padding: .3rem .9rem; text-align: left; }
   td:first-child { color: #64748b; }
-  td:last-child { color: #38bdf8; }
+  td + td { color: #38bdf8; }
+  tr:first-child td { color: #64748b; border-bottom: 1px solid #334155; }
 </style>
 <div class="card">
   <h1>👋 GitOps Demo</h1>
   <div class="v">v2</div>
-  <p>git push → Actions → GHCR → chart/values.yaml → ArgoCD → here</p>
+  <p>git push → Actions → GHCR → chart/values-dev.yaml → ArgoCD → here</p>
 
-  <h2>helm chart</h2>
+  <h2>helm chart — web 0.1.0</h2>
   <table>
-    <tr><td>chart</td><td>web 0.1.0</td></tr>
-    <tr><td>replicaCount</td><td>2</td></tr>
-    <tr><td>image.repo</td><td>ghcr.io/nakyungwon/my-devops</td></tr>
-    <tr><td>image.tag</td><td>CI가 커밋 SHA로 갱신</td></tr>
-    <tr><td>service.nodePort</td><td>30080</td></tr>
+    <tr><td></td><td>dev</td><td>prod</td></tr>
+    <tr><td>targetRevision</td><td>main</td><td>git tag</td></tr>
+    <tr><td>values</td><td>values-dev</td><td>values-prod</td></tr>
+    <tr><td>namespace</td><td>dev</td><td>prod</td></tr>
+    <tr><td>nodePort</td><td>30080</td><td>30081</td></tr>
+    <tr><td>image.tag</td><td>CI 자동</td><td>수동 승격</td></tr>
   </table>
 </div>
