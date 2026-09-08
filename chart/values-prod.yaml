@@ -1,0 +1,13 @@
+# prod — git 태그를 배포합니다. 자동 sync 없음.
+# argocd/app-prod.yaml 이 이 파일을 씁니다.
+
+replicaCount: 3
+
+image:
+  # CI 가 건드리지 않습니다. 승격할 때 손으로 올립니다:
+  #   이 값을 새 SHA 로 바꾸고 → 커밋 → 새 태그 push → app-prod 의 targetRevision 갱신
+  tag: a1dd282a9af80c97a63ea0158668f3517441f6b6
+
+service:
+  # dev(30080) 와 겹치면 나중에 뜨는 쪽이 실패합니다.
+  nodePort: 30081

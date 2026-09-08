@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # chart/values.yaml 태그 커밋용
+  contents: write # chart/values-dev.yaml 태그 커밋용
   packages: write # GHCR push용
 
 env:
@@ -39,16 +39,17 @@ jobs:
             ${{ env.IMAGE }}:${{ github.sha }}
             ${{ env.IMAGE }}:latest
 
-      - name: bump image tag in chart values
+      - name: bump dev image tag
         run: |
           set -euo pipefail
-          # values.yaml 안에 tag: 는 한 줄뿐이라 sed 가 안전합니다.
-          sed -i "s|^\( *tag: \).*|\1${GITHUB_SHA}|" chart/values.yaml
-          grep -n "tag:" chart/values.yaml
+          # dev 만 갱신합니다. prod(values-prod.yaml)는 손으로 승격합니다.
+          # values-dev.yaml 안에 tag: 는 한 줄뿐이라 sed 가 안전합니다.
+          sed -i "s|^\( *tag: \).*|\1${GITHUB_SHA}|" chart/values-dev.yaml
+          grep -n "tag:" chart/values-dev.yaml
 
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add chart/values.yaml
+          git add chart/values-dev.yaml
           # 태그가 그대로면 커밋할 게 없어 실패하므로 먼저 확인
           if git diff --cached --quiet; then
             echo "no tag change, skipping commit"

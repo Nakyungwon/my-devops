@@ -1,20 +1,17 @@
-# 이 파일의 값들이 templates/ 의 .Values.* 로 들어갑니다.
-# 우선순위: --set / -f 로 준 값 > 이 파일 > 템플릿 기본값(없음)
-
-# → templates/deployment.yaml: spec.replicas
-replicaCount: 2
+# 모든 환경이 공유하는 값만 둡니다.
+# 환경마다 다른 값(replicaCount / image.tag / service.nodePort)은
+# values-dev.yaml, values-prod.yaml 에 있습니다.
+#
+# 우선순위: values-<env>.yaml > 이 파일
+# ArgoCD 가 Application 의 helm.valueFiles 순서대로 겹쳐 읽습니다.
+#
+# 이 파일만으로는 렌더링되지 않습니다 (replicaCount 등이 없음). 확인하려면:
+#   helm template web ./chart -f chart/values.yaml -f chart/values-dev.yaml
 
 image:
   # → templates/deployment.yaml: image 앞부분
   #    .github/workflows/ci.yml 의 env.IMAGE 와 같은 값 (자동 동기화 아님, 손으로 맞춤)
   repo: ghcr.io/nakyungwon/my-devops
-  # → templates/deployment.yaml: image 뒷부분. 값은 CI 가 빌드한 커밋 SHA.
-  #    CI(bump 스텝)가 이 줄을 sed 로 갈아끼웁니다. 손으로 고칠 일 없습니다.
-  tag: 222576a904dbdc3f5126ac1e829ff30abdd99c9a
-
-service:
-  # → templates/service.yaml: ports[0].nodePort (README 의 localhost:30080)
-  nodePort: 30080
 
 # → templates/deployment.yaml: containers[0].resources 에 통째로 들어감
 resources:

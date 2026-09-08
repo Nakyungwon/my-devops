@@ -1,0 +1,14 @@
+# dev — main 브랜치를 그대로 따라갑니다. 자동 sync.
+# argocd/app-dev.yaml 이 이 파일을 씁니다.
+
+replicaCount: 1
+
+image:
+  # CI(bump 스텝)가 이 줄을 커밋 SHA 로 sed 합니다. 손으로 고칠 일 없습니다.
+  # prod 는 건드리지 않습니다 — 그게 환경을 나눈 이유입니다.
+  tag: a1dd282a9af80c97a63ea0158668f3517441f6b6
+
+service:
+  # NodePort 는 네임스페이스가 아니라 클러스터 전역입니다.
+  # prod(30081) 와 반드시 달라야 합니다.
+  nodePort: 30080
