@@ -1,34 +1,103 @@
 <!doctype html>
-<meta charset="utf-8">
+<meta charset="utf-8" />
 <title>GitOps Demo</title>
 <style>
-  body { font-family: -apple-system, system-ui, sans-serif; display: grid;
-         place-content: center; min-height: 100vh; margin: 0; background: #0f172a; color: #e2e8f0; }
-  .card { text-align: center; padding: 3rem 4rem; border: 1px solid #334155; border-radius: 12px; }
-  h1 { margin: 0 0 .5rem; font-size: 3rem; }
-  .v { color: #38bdf8; font-family: ui-monospace, monospace; font-size: 1.5rem; }
-  p { color: #94a3b8; margin-top: 1.5rem; }
-  h2 { color: #94a3b8; font-size: .8rem; letter-spacing: .1em; text-transform: uppercase;
-       margin: 2rem 0 .75rem; border-top: 1px solid #334155; padding-top: 1.5rem; }
-  table { margin: 0 auto; border-collapse: collapse; font-size: .9rem;
-          font-family: ui-monospace, monospace; }
-  td { padding: .3rem .9rem; text-align: left; }
-  td:first-child { color: #64748b; }
-  td + td { color: #38bdf8; }
-  tr:first-child td { color: #64748b; border-bottom: 1px solid #334155; }
+  body {
+    font-family: -apple-system, system-ui, sans-serif;
+    display: grid;
+    place-content: center;
+    min-height: 100vh;
+    margin: 0;
+    background: #0f172a;
+    color: #e2e8f0;
+  }
+  .card {
+    text-align: center;
+    padding: 3rem 4rem;
+    border: 1px solid #334155;
+    border-radius: 12px;
+  }
+  h1 {
+    margin: 0 0 0.5rem;
+    font-size: 3rem;
+  }
+  .v {
+    color: #38bdf8;
+    font-family: ui-monospace, monospace;
+    font-size: 1.5rem;
+  }
+  p {
+    color: #94a3b8;
+    margin-top: 1.5rem;
+  }
+  h2 {
+    color: #94a3b8;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 2rem 0 0.75rem;
+    border-top: 1px solid #334155;
+    padding-top: 1.5rem;
+  }
+  table {
+    margin: 0 auto;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    font-family: ui-monospace, monospace;
+  }
+  td {
+    padding: 0.3rem 0.9rem;
+    text-align: left;
+  }
+  td:first-child {
+    color: #64748b;
+  }
+  td + td {
+    color: #38bdf8;
+  }
+  tr:first-child td {
+    color: #64748b;
+    border-bottom: 1px solid #334155;
+  }
 </style>
 <div class="card">
   <h1>👋 GitOps Demo</h1>
   <div class="v">v2</div>
-  <p>git push → Actions → GHCR → chart/values-dev.yaml → ArgoCD → here</p>
+  <p>
+    git push → Actions → GHCR → chart/values-dev.yaml → ArgoCD → here 변경점
+  </p>
 
   <h2>helm chart — web 0.1.0</h2>
   <table>
-    <tr><td></td><td>dev</td><td>prod</td></tr>
-    <tr><td>targetRevision</td><td>main</td><td>git tag</td></tr>
-    <tr><td>values</td><td>values-dev</td><td>values-prod</td></tr>
-    <tr><td>namespace</td><td>dev</td><td>prod</td></tr>
-    <tr><td>nodePort</td><td>30080</td><td>30081</td></tr>
-    <tr><td>image.tag</td><td>CI 자동</td><td>수동 승격</td></tr>
+    <tr>
+      <td></td>
+      <td>dev</td>
+      <td>prod</td>
+    </tr>
+    <tr>
+      <td>targetRevision</td>
+      <td>main</td>
+      <td>git tag</td>
+    </tr>
+    <tr>
+      <td>values</td>
+      <td>values-dev</td>
+      <td>values-prod</td>
+    </tr>
+    <tr>
+      <td>namespace</td>
+      <td>dev</td>
+      <td>prod</td>
+    </tr>
+    <tr>
+      <td>nodePort</td>
+      <td>30080</td>
+      <td>30081</td>
+    </tr>
+    <tr>
+      <td>image.tag</td>
+      <td>CI 자동</td>
+      <td>수동 승격</td>
+    </tr>
   </table>
 </div>
