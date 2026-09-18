@@ -6,7 +6,7 @@ replicaCount: 1
 image:
   # CI(bump 스텝)가 이 줄을 커밋 SHA 로 sed 합니다. 손으로 고칠 일 없습니다.
   # prod 는 건드리지 않습니다 — 그게 환경을 나눈 이유입니다.
-  tag: 5dee563d3c6c1c5bdb067cd8062d351b7ec39eaf
+  tag: 94308b2ee987ce4fee884a9b1700e744e9c92d6e
 
 service:
   # NodePort 는 네임스페이스가 아니라 클러스터 전역입니다.
