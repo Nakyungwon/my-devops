@@ -67,7 +67,7 @@ chart/        Helm 차트. ArgoCD가 감시하는 대상. 차트는 한 벌, 환
   values-dev.yaml   CI가 image.tag 를 자동 갱신
   values-prod.yaml  손으로 승격
 argocd/       Application CR 두 벌. chart/ 를 가리킴 (일부러 분리 — 아래 참고)
-  app-dev.yaml   targetRevision: main    → ns dev,  automated
+  app-dev.yaml   targetRevision: develop   → ns dev,  automated
   app-prod.yaml  targetRevision: v1.0.0  → ns prod, 수동 sync
 ```
 
