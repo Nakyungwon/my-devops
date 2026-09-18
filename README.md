@@ -40,13 +40,13 @@ kubectl port-forward -n argocd svc/argocd-server 8081:443
 
 ```bash
 # 3분 기다리기 싫을 때 즉시 sync
-kubectl patch app web-dev -n argocd --type merge \
+kubectl patch app web-dev-metadata -n argocd --type merge \
   -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
 
 # prod 배포 (automated 가 없어서 직접 눌러야 합니다)
 # syncOptions 를 operation 에 같이 안 넣으면 namespaces "prod" not found 로 실패합니다.
 # syncPolicy.syncOptions 는 자동 sync 에만 적용됩니다.
-kubectl patch app web-prod -n argocd --type merge \
+kubectl patch app web-prod-metadata -n argocd --type merge \
   -p '{"operation":{"sync":{"revision":"v1.0.0","syncOptions":["CreateNamespace=true"]}}}'
 
 # 상태 확인

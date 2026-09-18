@@ -64,7 +64,7 @@ jobs:
       # refresh 만 걸면 automated sync 가 새 태그를 보고 알아서 apply 합니다.
       - name: ArgoCD 즉시 refresh
         run: |
-          kubectl patch app web-dev -n argocd --type merge \
+          kubectl patch app web-dev-metadata -n argocd --type merge \
             -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
 
       # 이게 없으면 refresh 만 던지고 job 이 초록불이라 배포 실패를 못 봅니다.

@@ -22,7 +22,7 @@ spec:
   syncPolicy:
     # automated 없음 — 있으면 dev 와 똑같아져서 나눈 의미가 없습니다.
     # 배포는 ArgoCD UI 의 SYNC 버튼이나 아래 명령으로:
-    #   kubectl patch app web-prod -n argocd --type merge \
+    #   kubectl patch app web-prod-metadata -n argocd --type merge \
     #     -p '{"operation":{"sync":{"revision":"v1.0.0",
     #          "syncOptions":["CreateNamespace=true"]}}}'
     # syncOptions 를 operation 에도 넣어야 합니다. 아래 syncPolicy.syncOptions 는
