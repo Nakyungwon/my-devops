@@ -1,0 +1,82 @@
+name: deploy-dev
+
+# develop 에 app/ 이 바뀌면 이미지를 빌드해서 dev 네임스페이스에 배포합니다.
+# 마지막 bump-tag 가 chart/ 를 커밋하는데, 그게 다시 이 워크플로를 부르면
+# 무한 루프가 됩니다. 이 paths 필터가 그 루프를 끊습니다.
+on:
+  push:
+    branches: [develop]
+    paths:
+      - "app/**"
+      - ".github/workflows/ci-dev.yml"
+      - ".github/actions/bump-tag/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write # chart/values-dev.yaml 태그 커밋용
+  packages: write # GHCR push용
+
+env:
+  # GHCR은 소문자만 받습니다. github.repository 는 대문자(Nakyungwon)가 섞여 있어 그대로 쓰면 실패합니다.
+  IMAGE: ghcr.io/nakyungwon/my-devops
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # 로컬 action(./.github/actions/...) 은 checkout 이 먼저 있어야 읽을 수 있습니다.
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./app
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+
+      # ${{ }} 표현식엔 문자열 자르기가 없어서 짧은 SHA 는 쉘에서 만들어 output 으로 넘깁니다.
+      - id: tag
+        run: echo "short=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+      - uses: ./.github/actions/bump-tag
+        with:
+          file: chart/values-dev.yaml
+          tag: ${{ github.sha }}
+          message: "chore: deploy ${{ steps.tag.outputs.short }}"
+
+  # bump-tag 가 push 한 커밋을 ArgoCD 가 3분 polling 으로 발견할 때까지 안 기다리고
+  # 즉시 refresh 를 겁니다. 클러스터가 내 맥 안이라 GitHub 러너에선 못 닿고,
+  # 맥에서 도는 self-hosted 러너가 필요합니다.
+  # 맥이 꺼져 있으면 이 job 은 대기(queued)하지만, ArgoCD polling 이 어차피
+  # 배포하므로 dev 배포 자체는 안 막힙니다. 빌드는 그대로 GitHub 러너에서 돕니다.
+  sync:
+    needs: build
+    runs-on: self-hosted
+    steps:
+      # 적용 주체는 여전히 ArgoCD. CI 가 kubectl apply 를 직접 치지 않습니다.
+      # refresh 만 걸면 automated sync 가 새 태그를 보고 알아서 apply 합니다.
+      - name: ArgoCD 즉시 refresh
+        run: |
+          kubectl patch app web-dev -n argocd --type merge \
+            -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
+
+      # 이게 없으면 refresh 만 던지고 job 이 초록불이라 배포 실패를 못 봅니다.
+      - name: 새 이미지로 롤아웃 될 때까지 대기
+        env:
+          WANT: ${{ env.IMAGE }}:${{ github.sha }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            CUR=$(kubectl -n dev get deploy web -o jsonpath='{.spec.template.spec.containers[0].image}')
+            [ "$CUR" = "$WANT" ] && break
+            echo "waiting ($i/30): $CUR"; sleep 5
+          done
+          [ "$CUR" = "$WANT" ] || { echo "timeout: deploy still on $CUR"; exit 1; }
+          kubectl -n dev rollout status deploy/web --timeout=120s

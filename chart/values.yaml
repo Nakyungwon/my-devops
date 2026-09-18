@@ -10,7 +10,7 @@
 
 image:
   # → templates/deployment.yaml: image 앞부분
-  #    .github/workflows/ci.yml 의 env.IMAGE 와 같은 값 (자동 동기화 아님, 손으로 맞춤)
+  #    .github/workflows/ci-dev.yml 의 env.IMAGE 와 같은 값 (자동 동기화 아님, 손으로 맞춤)
   repo: ghcr.io/nakyungwon/my-devops
 
 # → templates/deployment.yaml: containers[0].resources 에 통째로 들어감

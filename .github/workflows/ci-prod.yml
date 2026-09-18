@@ -1,0 +1,38 @@
+name: promote-prod
+
+# main 에 app/ 이 넘어오면(develop → main merge) 이미지를 다시 빌드하지 않고
+# develop 이 빌드해서 dev 에 띄워본 태그를 그대로 values-prod.yaml 에 복사합니다.
+# 승격은 "새로 만들기"가 아니라 "검증된 것 그대로 옮기기"여야 합니다.
+#
+# 주의: app/ 을 develop 안 거치고 main 에 직접 push 하면 옛날 태그가 복사됩니다.
+#       승격은 항상 merge 로 하세요.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - ".github/workflows/ci-prod.yml"
+      - ".github/actions/bump-tag/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write # chart/values-prod.yaml 태그 커밋용
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # values-dev.yaml 은 develop→main merge 로 같이 넘어옵니다.
+      - id: tag
+        run: |
+          TAG=$(sed -n 's|^ *tag: *\(.*\)|\1|p' chart/values-dev.yaml)
+          echo "full=$TAG"        >> "$GITHUB_OUTPUT"
+          echo "short=${TAG:0:7}" >> "$GITHUB_OUTPUT"
+
+      - uses: ./.github/actions/bump-tag
+        with:
+          file: chart/values-prod.yaml
+          tag: ${{ steps.tag.outputs.full }}
+          message: "chore: promote ${{ steps.tag.outputs.short }} to prod"
