@@ -1,0 +1,25 @@
+{{- if .Values.istio.enabled }}
+# VirtualService: Gateway 로 들어온 트래픽을 어느 Service 로 보낼지 라우팅 규칙.
+# 여기서 가중치(weight)를 나누면 카나리 배포가 된다.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  hosts:
+    - "{{ .Values.istio.host }}"
+  # 위 gateway.yaml 이 만든 Gateway 를 참조(같은 이름).
+  gateways:
+    - {{ .Release.Name }}
+  http:
+    - route:
+        - destination:
+            # 같은 네임스페이스의 web Service(=.Release.Name). Pod 로 트래픽 전달.
+            host: {{ .Release.Name }}
+            port:
+              number: 80
+          # 카나리 예시: 한 destination 이면 100%. 새 버전 subset 추가 후
+          # weight 를 90/10 으로 나누면 점진 배포. 지금은 단일이라 생략.
+{{- end }}

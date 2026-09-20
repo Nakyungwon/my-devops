@@ -20,3 +20,9 @@ resources:
     memory: 16Mi
   limits:
     memory: 64Mi
+
+# → templates/gateway.yaml, virtualservice.yaml
+# 기본 꺼짐. 환경별로 켠다(dev 만). prod 는 꺼둬야 게이트웨이가 겹치지 않는다.
+istio:
+  enabled: false
+  host: "*"

@@ -12,3 +12,8 @@ service:
   # NodePort 는 네임스페이스가 아니라 클러스터 전역입니다.
   # prod(30081) 와 반드시 달라야 합니다.
   nodePort: 30080
+
+# dev 만 Istio 게이트웨이 라우팅을 켠다. Gateway + VirtualService 가 생성돼
+# istio-ingressgateway(localhost:80) → web 서비스로 트래픽이 흐른다.
+istio:
+  enabled: true

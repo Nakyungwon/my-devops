@@ -1,0 +1,23 @@
+{{- if .Values.istio.enabled }}
+# Istio Gateway: istio-ingressgateway(Envoy) 가 어떤 포트/호스트를 받을지 선언.
+# 이것만으론 라우팅 안 됨 — 실제 목적지는 virtualservice.yaml 이 정한다.
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  # 어느 게이트웨이 Pod 에 이 규칙을 적용할지. 위에서 확인한 라벨 istio=ingressgateway.
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      # chart/values*.yaml → istio.host. "*" 면 모든 호스트 허용(localhost 바로 접속).
+      hosts:
+        - "{{ .Values.istio.host }}"
+{{- end }}
+{{- /* prod 는 istio.enabled=false 라 이 리소스가 렌더링되지 않는다(게이트웨이 충돌 방지). */}}
