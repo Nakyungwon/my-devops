@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istio-base
+  namespace: argocd
+  # sync-wave: 낮을수록 먼저. base(CRD)가 istiod보다 반드시 먼저 깔려야 한다.
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    # git 이 아니라 Istio 공식 Helm 저장소를 직접 소스로 지정.
+    # chart 를 벤더링(복사)하지 않고 버전만 고정해서 가져온다.
+    repoURL: https://istio-release.storage.googleapis.com/charts
+    chart: base
+    targetRevision: 1.30.4
+    helm:
+      releaseName: istio-base
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+  # istiod 가 웹훅의 caBundle/failurePolicy 를 런타임에 채워넣어 항상 diff 로 잡힌다.
+  # 동작엔 문제없고 표시만 어긋나므로 이 필드는 비교에서 제외한다 (Istio 공식 권장).
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      jqPathExpressions:
+        - '.webhooks[]?.failurePolicy'
+        - '.webhooks[]?.clientConfig.caBundle'
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # CRD 를 서버가 검증하도록 (대용량 CRD apply 시 필요)
+      - ServerSideApply=true

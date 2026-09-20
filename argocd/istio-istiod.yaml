@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istiod
+  namespace: argocd
+  # base(wave 0) 다음. istiod 는 base 가 만든 CRD 가 있어야 뜬다.
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://istio-release.storage.googleapis.com/charts
+    chart: istiod
+    targetRevision: 1.30.4
+    helm:
+      releaseName: istiod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+  # istiod 가 웹훅의 caBundle/failurePolicy 를 런타임에 채워 항상 diff 로 잡힌다. 비교 제외.
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      jqPathExpressions:
+        - '.webhooks[]?.failurePolicy'
+        - '.webhooks[]?.clientConfig.caBundle'
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    # CRD 가 아직 없어서 첫 sync 가 실패해도 재시도로 수렴시킨다.
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        maxDuration: 2m
