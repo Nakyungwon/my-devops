@@ -66,16 +66,19 @@ chart/        Helm 차트. ArgoCD가 감시하는 대상. 차트는 한 벌, 환
   values.yaml       공통 (image.repo, resources)
   values-dev.yaml   CI가 image.tag 를 자동 갱신
   values-prod.yaml  손으로 승격
-argocd/       Application CR 두 벌. chart/ 를 가리킴 (일부러 분리 — 아래 참고)
-  app-dev.yaml   targetRevision: develop   → ns dev,  automated
-  app-prod.yaml  targetRevision: v1.0.0  → ns prod, 수동 sync
+argocd/       ArgoCD Application CR. Helm 차트가 아닌 일반 매니페스트 (일부러 분리 — 아래 참고)
+  app-dev.yaml   chart/ 를 가리킴. targetRevision: develop → ns dev,  automated
+  app-prod.yaml  chart/ 를 가리킴. targetRevision: v1.0.0  → ns prod, 수동 sync
+  istio-*.yaml   Istio 공식 Helm 차트(base/istiod/gateway)를 가리킴
 ```
 
 `argocd/` 가 `chart/` 밖에 있는 이유: 안에 두면 helm 이 이 파일까지
 렌더링해서 ArgoCD가 자기 자신을 `default` 네임스페이스에 만들려다 깨집니다.
 
-helm 릴리스 이름은 Application 의 `metadata.name`(`web`)이 됩니다. 템플릿의
-`{{ .Release.Name }}` 이 그 값이라 리소스 이름은 예전 `manifests/` 시절과 같습니다.
+helm 릴리스 이름은 기본값이 Application 의 `metadata.name`(`web-dev-metadata` 등)이지만,
+`spec.source.helm.releaseName: web` 으로 덮어써서 dev/prod 모두 `web` 입니다. 템플릿의
+`{{ .Release.Name }}` 이 그 값이라 리소스 이름은 예전 `manifests/` 시절과 같고,
+환경은 네임스페이스로 구분합니다.
 
 ## 알아둘 것
 

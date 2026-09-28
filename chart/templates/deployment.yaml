@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   # .Release.Name = helm 릴리스 이름. values.yaml 이 아니라 설치 명령에서 옵니다.
   #   helm upgrade --install web ./chart  → "web"
-  #   ArgoCD(helm source)면 Application 의 metadata.name 이 릴리스 이름이 됩니다.
+  #   ArgoCD(helm source)면 spec.source.helm.releaseName("web"), 없으면 metadata.name 입니다.
   name: {{ .Release.Name }}
   labels:
     app: {{ .Release.Name }}
