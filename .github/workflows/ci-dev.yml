@@ -1,8 +1,8 @@
 name: deploy-dev
 
-# develop 에 app/ 이 바뀌면 이미지를 빌드해서 dev 네임스페이스에 배포합니다.
-# 마지막 bump-tag 가 chart/ 를 커밋하는데, 그게 다시 이 워크플로를 부르면
-# 무한 루프가 됩니다. 이 paths 필터가 그 루프를 끊습니다.
+# develop 에 app/ 이 바뀌면 이미지를 빌드하고, 설정 리포(my-devops-config)의
+# values-dev.yaml 태그를 커밋합니다. 실제 배포는 그 리포를 보는 ArgoCD 가 합니다.
+# 태그 커밋은 이 리포가 아니라 설정 리포에 쌓이므로 이 워크플로를 다시 부르지 않습니다.
 on:
   push:
     branches: [develop]
@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # chart/values-dev.yaml 태그 커밋용
+  contents: read # 이 리포엔 쓰지 않습니다. 설정 리포 push 는 deploy key 로.
   packages: write # GHCR push용
 
 env:
@@ -45,9 +45,17 @@ jobs:
       - id: tag
         run: echo "short=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
 
+      # GITHUB_TOKEN 은 이 리포에만 쓸 수 있어서, 설정 리포에만 쓰기 권한이 있는
+      # deploy key 로 체크아웃합니다. checkout 이 키를 남겨두므로 bump-tag 의 push 도 이 키로 갑니다.
+      - uses: actions/checkout@v4
+        with:
+          repository: Nakyungwon/my-devops-config
+          ssh-key: ${{ secrets.CONFIG_REPO_DEPLOY_KEY }}
+          path: config
+
       - uses: ./.github/actions/bump-tag
         with:
-          file: chart/values-dev.yaml
+          file: config/chart/values-dev.yaml
           tag: ${{ github.sha }}
           message: "chore: deploy ${{ steps.tag.outputs.short }}"
 

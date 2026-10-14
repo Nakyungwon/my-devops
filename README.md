@@ -1,22 +1,32 @@
 # my-devops
 
-로컬 쿠버네티스 GitOps 데모. `app/` 을 고치면 배포까지 자동으로 굴러갑니다.
+로컬 쿠버네티스 GitOps 데모의 **코드 리포**. `app/` 을 고치면 배포까지 자동으로 굴러갑니다.
+배포 설정(Helm 차트, ArgoCD Application)은 [my-devops-config](https://github.com/Nakyungwon/my-devops-config) 에 있고,
+ArgoCD 는 그 리포만 봅니다.
 
 ## 루프
 
 ```
-app/index.html 수정
-  → git push
-  → GitHub Actions: 이미지 빌드 → GHCR push
-  → Actions가 chart/values-dev.yaml 의 image.tag 커밋
-  → ArgoCD가 폴링으로 감지 (최대 3분)
-  → dev 네임스페이스 sync
+app/index.html 수정 → develop push
+  → ci-dev: 이미지 빌드 → GHCR push
+  → my-devops-config 의 chart/values-dev.yaml image.tag 커밋 (deploy key)
+  → ArgoCD dev 자동 sync
   → http://localhost:30080
 
-prod는 이 루프에 없습니다. 손으로 승격합니다 (아래 참고).
+develop → main merge
+  → ci-prod: dev 태그를 my-devops-config 의 values-prod.yaml 에 복사 커밋
+  → ArgoCD prod 는 OutOfSync 로 대기, 사람이 SYNC
+  → http://localhost:30081
 ```
 
-측정된 실제 소요시간: push부터 반영까지 **약 170초** (CI 24초 + ArgoCD 폴링 대기).
+## 구조
+
+```
+app/                         정적 페이지 + Dockerfile (여기를 고치면 루프 발동)
+.github/workflows/ci-dev.yml   develop: 빌드 + 설정 리포 dev 태그 갱신 + 즉시 refresh(self-hosted)
+.github/workflows/ci-prod.yml  main: 설정 리포 prod 태그 승격 (빌드 없음)
+.github/actions/bump-tag/      설정 리포 values 파일 태그 sed + 커밋 + push
+```
 
 ## 접속
 
@@ -34,82 +44,22 @@ kubectl port-forward -n argocd svc/argocd-server 8081:443
 #       -o jsonpath='{.data.password}' | base64 -d
 ```
 
-브라우저에서 자체서명 인증서 경고가 뜹니다. 로컬이라 무시하고 진행하면 됩니다.
-
-## 자주 쓰는 명령
-
-```bash
-# 3분 기다리기 싫을 때 즉시 sync
-kubectl patch app web-dev-metadata -n argocd --type merge \
-  -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
-
-# prod 배포 (automated 가 없어서 직접 눌러야 합니다)
-# syncOptions 를 operation 에 같이 안 넣으면 namespaces "prod" not found 로 실패합니다.
-# syncPolicy.syncOptions 는 자동 sync 에만 적용됩니다.
-kubectl patch app web-prod-metadata -n argocd --type merge \
-  -p '{"operation":{"sync":{"revision":"v1.0.0","syncOptions":["CreateNamespace=true"]}}}'
-
-# 상태 확인
-kubectl get app -n argocd
-kubectl get pods -n dev
-kubectl get pods -n prod
-
-# 컨텍스트 확인 — 회사 EKS와 섞이지 않게 항상 체크
-kubectl config current-context   # docker-desktop 이어야 함
-```
-
-## 구조
-
-```
-app/          정적 페이지 + Dockerfile  (여기를 고치면 루프 발동)
-chart/        Helm 차트. ArgoCD가 감시하는 대상. 차트는 한 벌, 환경별로 values 만 다름
-  values.yaml       공통 (image.repo, resources)
-  values-dev.yaml   CI가 image.tag 를 자동 갱신
-  values-prod.yaml  손으로 승격
-argocd/       ArgoCD Application CR. Helm 차트가 아닌 일반 매니페스트 (일부러 분리 — 아래 참고)
-  app-dev.yaml   chart/ 를 가리킴. targetRevision: develop → ns dev,  automated
-  app-prod.yaml  chart/ 를 가리킴. targetRevision: v1.0.0  → ns prod, 수동 sync
-  istio-*.yaml   Istio 공식 Helm 차트(base/istiod/gateway)를 가리킴
-```
-
-`argocd/` 가 `chart/` 밖에 있는 이유: 안에 두면 helm 이 이 파일까지
-렌더링해서 ArgoCD가 자기 자신을 `default` 네임스페이스에 만들려다 깨집니다.
-
-helm 릴리스 이름은 기본값이 Application 의 `metadata.name`(`web-dev-metadata` 등)이지만,
-`spec.source.helm.releaseName: web` 으로 덮어써서 dev/prod 모두 `web` 입니다. 템플릿의
-`{{ .Release.Name }}` 이 그 값이라 리소스 이름은 예전 `manifests/` 시절과 같고,
-환경은 네임스페이스로 구분합니다.
+prod 배포·롤백·재구축 명령은 my-devops-config README 에 있습니다.
 
 ## 알아둘 것
 
-- **CI 무한루프 방지**: 워크플로가 `chart/` 를 커밋하는데, 트리거가 `paths: app/**`
-  로 제한돼 있어 그 커밋이 자신을 다시 부르지 않습니다. 이 필터를 지우면 무한루프입니다.
+- **설정 리포 쓰기 권한**: CI 는 `GITHUB_TOKEN` 이 아니라 deploy key 로 my-devops-config 에 push 합니다.
+  비밀키는 이 리포 시크릿 `CONFIG_REPO_DEPLOY_KEY`, 공개키는 설정 리포 Deploy keys(쓰기 허용).
+  키를 갈려면 둘 다 바꿔야 합니다.
+- **paths 필터**: 태그 커밋이 설정 리포로 가므로 무한루프 걱정은 없습니다. 필터는 "app/ 이 바뀔 때만 빌드"
+  용도로 남아 있습니다.
 - **GHCR 소문자**: `github.repository` 는 `Nakyungwon/...` 이라 대문자가 섞입니다.
   GHCR은 소문자만 받으므로 워크플로에서 `IMAGE` 를 소문자로 하드코딩했습니다.
-- **selfHeal 켜져 있음(dev만)**: `kubectl edit` 로 직접 바꿔도 git 상태로 되돌아갑니다.
-  수동 변경을 테스트하려면 `syncPolicy.automated.selfHeal` 을 꺼야 합니다.
-  prod 는 `automated` 자체가 없어서 해당 없습니다.
-- **NodePort 는 클러스터 전역**: 네임스페이스로 안 갈립니다. dev 30080 / prod 30081 이
-  겹치면 나중에 뜨는 쪽이 `provided port is already allocated` 로 실패합니다.
-- **valueFiles 쓰면 values.yaml 기본 포함이 꺼집니다**: Application 에 `values.yaml` 을
-  명시적으로 같이 나열해야 공통값이 들어갑니다.
-- **prod 승격 절차**: `chart/values-prod.yaml` 의 `tag:` 를 새 SHA 로 → 커밋 →
-  `git tag vX.Y.Z && git push --tags` → `argocd/app-prod.yaml` 의 `targetRevision`
-  갱신 후 apply. CI 는 prod 를 절대 건드리지 않습니다.
-- **k8s 1.25 고정**: Docker Desktop 4.15 내장 버전입니다. ArgoCD도 여기 맞춰
-  `v2.9.3` 으로 핀을 걸었습니다. 최신 ArgoCD는 1.27+ 를 요구해서 안 올라갑니다.
+  설정 리포 `chart/values.yaml` 의 `image.repo` 와 손으로 맞춰야 합니다.
+- **k8s 1.25 고정**: Docker Desktop 4.15 내장 버전입니다. ArgoCD 는 `v2.9.3` 이 떠 있습니다.
   회사 EKS(1.33)와는 버전 차이가 있으니 prod 매니페스트 검증용으로는 쓰지 마세요.
 
-## 재구축
-
-클러스터를 날렸다가 다시 만들 때:
-
 ```bash
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.9.3/manifests/install.yaml # apt install argocd
-kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
-# kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
-        # └──┬─┘ └─────────┬────────┘ └┬─┘ └─┬─┘ └───┬──┘ └─────┬────┘
-        #  기다려     이 조건이 참될때까지   뭘    전부     어디서     최대 5분
-kubectl apply -f argocd/app-dev.yaml -f argocd/app-prod.yaml
+# 컨텍스트 확인 — 회사 EKS와 섞이지 않게 항상 체크
+kubectl config current-context   # docker-desktop 이어야 함
 ```

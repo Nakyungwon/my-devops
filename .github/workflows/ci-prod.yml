@@ -1,11 +1,12 @@
 name: promote-prod
 
 # main 에 app/ 이 넘어오면(develop → main merge) 이미지를 다시 빌드하지 않고
-# develop 이 빌드해서 dev 에 띄워본 태그를 그대로 values-prod.yaml 에 복사합니다.
+# 설정 리포의 values-dev.yaml 태그(= 지금 dev 에 떠 있는 이미지)를 values-prod.yaml 에 복사합니다.
 # 승격은 "새로 만들기"가 아니라 "검증된 것 그대로 옮기기"여야 합니다.
 #
-# 주의: app/ 을 develop 안 거치고 main 에 직접 push 하면 옛날 태그가 복사됩니다.
-#       승격은 항상 merge 로 하세요.
+# 커밋까지만 합니다. prod 는 자동 sync 가 없어서 ArgoCD 에서 SYNC 해야 나갑니다.
+# 주의: merge 시점이 아니라 이 job 이 돌 때의 dev 태그를 복사합니다.
+#       merge 직후 develop 에 또 push 해서 dev 가 바뀌었다면 그 이미지가 올라갑니다.
 on:
   push:
     branches: [main]
@@ -16,23 +17,29 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # chart/values-prod.yaml 태그 커밋용
+  contents: read # 이 리포엔 쓰지 않습니다. 설정 리포 push 는 deploy key 로.
 
 jobs:
   promote:
     runs-on: ubuntu-latest
     steps:
+      # 로컬 action(./.github/actions/bump-tag) 을 읽으려면 이 리포 checkout 이 필요합니다.
       - uses: actions/checkout@v4
 
-      # values-dev.yaml 은 develop→main merge 로 같이 넘어옵니다.
+      - uses: actions/checkout@v4
+        with:
+          repository: Nakyungwon/my-devops-config
+          ssh-key: ${{ secrets.CONFIG_REPO_DEPLOY_KEY }}
+          path: config
+
       - id: tag
         run: |
-          TAG=$(sed -n 's|^ *tag: *\(.*\)|\1|p' chart/values-dev.yaml)
+          TAG=$(sed -n 's|^ *tag: *\(.*\)|\1|p' config/chart/values-dev.yaml)
           echo "full=$TAG"        >> "$GITHUB_OUTPUT"
           echo "short=${TAG:0:7}" >> "$GITHUB_OUTPUT"
 
       - uses: ./.github/actions/bump-tag
         with:
-          file: chart/values-prod.yaml
+          file: config/chart/values-prod.yaml
           tag: ${{ steps.tag.outputs.full }}
           message: "chore: promote ${{ steps.tag.outputs.short }} to prod"

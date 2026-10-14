@@ -1,5 +1,5 @@
 name: bump-tag
-description: chart/values-*.yaml 의 image.tag 를 바꾸고 커밋·푸시합니다.
+description: 설정 리포(my-devops-config) values-*.yaml 의 image.tag 를 바꾸고 커밋·푸시합니다.
 
 # composite action = 여러 step 을 하나로 묶은 "재사용 가능한 step".
 # reusable workflow(on: workflow_call) 와 달리 별도 job 이 아니라 호출한 job 안에서
@@ -8,7 +8,7 @@ description: chart/values-*.yaml 의 image.tag 를 바꾸고 커밋·푸시합�
 # 호출 방법 (checkout 뒤에):
 #   - uses: ./.github/actions/bump-tag
 #     with:
-#       file: chart/values-dev.yaml
+#       file: config/chart/values-dev.yaml   # 설정 리포를 config/ 에 checkout 한 뒤
 #       tag: ${{ github.sha }}
 #       message: "chore: deploy abc1234"
 
@@ -39,13 +39,17 @@ runs:
         sed -i "s|^\( *tag: \).*|\1${TAG}|" "$FILE"
         grep -n "tag:" "$FILE"
 
+        # FILE 은 설정 리포 checkout(config/) 안에 있으므로 git 은 그 리포에서 돌립니다.
+        cd "$(dirname "$FILE")"
         git config user.name  "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add "$FILE"
+        git add "$(basename "$FILE")"
         # 태그가 그대로면 커밋할 게 없어 실패하므로 먼저 확인
         if git diff --cached --quiet; then
           echo "no tag change, skipping commit"
         else
           git commit -m "$MSG"
+          # ci-dev 와 ci-prod 가 같은 설정 리포에 동시에 push 하면 뒤쪽이 거절되므로 먼저 받아옵니다.
+          git pull --rebase --quiet
           git push
         fi
